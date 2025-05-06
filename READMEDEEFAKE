@@ -1,0 +1,154 @@
+# DeepFake Classifier Using Depth Estimation and ResNet18
+
+A deep learning pipeline to classify real vs. deepfake images using depth estimation preprocessing and a fine-tuned ResNet18 binary classifier. The pipeline includes depth map extraction via the DPT (Dense Prediction Transformer) model, simple image augmentations, and end-to-end training with evaluation.
+
+---
+
+## 📑 Table of Contents
+
+* [Introduction](#introduction)
+* [Features](#features)
+* [Installation](#installation)
+* [Usage](#usage)
+* [Pipeline Overview](#pipeline-overview)
+* [Configuration](#configuration)
+* [Examples](#examples)
+* [Dependencies](#dependencies)
+* [Troubleshooting](#troubleshooting)
+
+---
+
+## 📌 Introduction
+
+This project builds a binary image classifier to distinguish between real and deepfake face images. It utilizes depth estimation from the DPT model (`Intel/dpt-hybrid-midas`) to emphasize 3D cues, followed by simple data augmentation and training of a ResNet18-based model.
+
+---
+
+## ✨ Features
+
+* 🔍 **Depth Estimation**: Uses a pretrained transformer model to convert RGB images into depth maps.
+* 🧪 **Image Augmentation**: Basic mirroring to expand dataset size.
+* 🧠 **Model Architecture**: ResNet18 with custom dropout and sigmoid output for binary classification.
+* 📈 **Performance Metrics**: Accuracy, Precision, Recall, and F1-Score logged per epoch.
+* 🧵 **Auto Validation**: Splits data and tracks best model via validation loss.
+* 💾 **Checkpointing**: Automatically saves the best model.
+
+---
+
+## 🛠 Installation
+
+1. **Clone the repository**:
+
+   ```bash
+   git clone https://github.com/yourusername/deepfake-depth-classifier.git
+   cd deepfake-depth-classifier
+   ```
+
+2. **Install dependencies**:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **(Optional) Setup GPU**: Ensure CUDA is available for GPU acceleration.
+
+---
+
+## 🚀 Usage
+
+### Directory Structure
+
+```
+data/
+├── deepfake/
+│   ├── fake1.jpg
+│   └── ...
+└── real/
+    ├── real1.jpg
+    └── ...
+```
+
+### Train the Model
+
+```bash
+python deepfake_classifier.py \
+    --data_dir data/ \
+    --ckpt best_model.pth \
+    --epochs 10 \
+    --batch_size 32 \
+    --lr 0.001 \
+    --n_augment 3 \
+    --val_split 0.2
+```
+
+---
+
+## 🔄 Pipeline Overview
+
+1. **Depth Estimation**: RGB → Depth using DPT model.
+2. **Data Augmentation**: Mirrors each image `n_augment` times.
+3. **Transformations**: Resize, normalize, and random flips.
+4. **Train/Validation Split**: Defined by `--val_split`.
+5. **Training**: ResNet18 fine-tuned with binary cross-entropy.
+6. **Evaluation**: Logs accuracy, precision, recall, and F1 score.
+7. **Checkpointing**: Saves best model to `--ckpt` path.
+
+---
+
+## ⚙️ Configuration
+
+| Argument       | Description                                        | Default    |
+| -------------- | -------------------------------------------------- | ---------- |
+| `--data_dir`   | Root directory with `real/` and `deepfake/` images | `data/`    |
+| `--ckpt`       | Path to save best model checkpoint                 | `best.pth` |
+| `--epochs`     | Training epochs                                    | `10`       |
+| `--batch_size` | Batch size for training                            | `32`       |
+| `--lr`         | Learning rate for Adam optimizer                   | `1e-3`     |
+| `--n_augment`  | Number of augmented copies per image               | `3`        |
+| `--val_split`  | Validation data split ratio                        | `0.2`      |
+
+---
+
+## 🧪 Examples
+
+**Estimate Depth Only:**
+
+```python
+from deepfake_classifier import estimate_depth
+estimate_depth("data/", "depth/")
+```
+
+**Augment Images Only:**
+
+```python
+from deepfake_classifier import augment_images
+augment_images("depth/deepfake", "processed/deepfake", 3)
+```
+
+---
+
+## 📦 Dependencies
+
+Make sure the following libraries are installed:
+
+* `torch`
+* `torchvision`
+* `Pillow`
+* `transformers`
+* `tqdm`
+* `scikit-learn`
+* `numpy`
+
+Use this to install:
+
+```bash
+pip install torch torchvision transformers Pillow tqdm scikit-learn numpy
+```
+
+---
+
+## 🧯 Troubleshooting
+
+* **CUDA not available**: The script defaults to CPU if no GPU is found.
+* **Image loading errors**: Ensure images are in `.jpg`, `.jpeg`, or `.png` format.
+* **Low accuracy**: Try increasing `--epochs`, reducing `--val_split`, or experimenting with more augmentations.
