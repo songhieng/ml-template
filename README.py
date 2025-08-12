@@ -1,512 +1,315 @@
+#!/usr/bin/env python3
 """
-padim_inference.py
-------------------
+padim.py
 
-Inference‑only implementation of PaDiM (Patch Distribution Modeling) for image
-anomaly detection. It can read the model saved by the training script (new
-``.npz`` format **or** the legacy ``.npz``/``.pkl`` format) and returns a
-Mahalanobis‑based anomaly score.
+PaDiM anomaly detection (inference-only).
 
-Typical usage
-~~~~~~~~~~~~~
+- Supports NEW dumps (.npz or .pkl) with: pca_components, pca_mean, mean_vector,
+  covariance_inv, threshold
+- Supports LEGACY dumps (.npz) with: mus, cov_invs, H, W, D, (optional ch_idx), thresh
+- Optional preprocessing: bottom-crop percentage + Canny edge emphasis
 
->>> from padim_inference import detect_anomaly
->>> result = detect_anomaly(
-...     image_path="samples/img.png",
-...     model_path="models/padim_trained.npz"
-... )
->>> print(result)
-{'image_path': 'samples/img.png',
- 'anomaly_score': 12.34,
- 'classification': 'anomaly',
- 'is_anomaly': True}
+Requires:
+  pip install torch torchvision pillow numpy scikit-learn joblib opencv-python
 """
 
-# --------------------------------------------------------------------------- #
-# Imports
-# --------------------------------------------------------------------------- #
-import os
-from typing import Tuple, Optional, Dict
+from __future__ import annotations
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
-import joblib
 import numpy as np
-import cv2
+from PIL import Image
+
 import torch
 import torch.nn.functional as F
-from PIL import Image
-from scipy.spatial.distance import mahalanobis
-from sklearn.decomposition import PCA
 from torchvision import models, transforms
 from torchvision.models import ResNet18_Weights
 
+from sklearn.decomposition import PCA
+from scipy.spatial.distance import mahalanobis
+import joblib
 
-# --------------------------------------------------------------------------- #
-# Helper – register forward hooks to capture intermediate feature maps
-# --------------------------------------------------------------------------- #
-def _register_feature_hooks(
-    model: torch.nn.Module, layer_names: list, features_dict: dict
-) -> None:
-    """Register forward hooks that store the output of *layer_names* in *features_dict*."""
-    def _make_hook(name: str):
-        def _hook(module, inp, out):
+# Optional OpenCV for Canny/overlays
+try:
+    import cv2
+    _HAS_CV2 = True
+except Exception:
+    _HAS_CV2 = False
+
+
+# -------------------- helpers --------------------
+
+def _register_feature_hooks(model, layer_names: List[str], features_dict: Dict[str, torch.Tensor]) -> None:
+    def _mk(name):
+        def hook(_m, _i, out):
             features_dict[name] = out.detach().cpu()
-        return _hook
-
+        return hook
     for name, module in model.named_children():
         if name in layer_names:
-            module.register_forward_hook(_make_hook(name))
+            module.register_forward_hook(_mk(name))
 
-# -----------------------------------------------------------------
-# Bottom‑percentage crop
-# -----------------------------------------------------------------
-def crop_bottom_percent_pil(image: Image.Image, percent: float = 0.35) -> Image.Image:
-    if not (0.0 < percent <= 1.0):
-        raise ValueError("percent must be in (0, 1]")
-    w, h = image.size
+def _to_tensor(img: Image.Image) -> torch.Tensor:
+    return transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
+    ])(img)
+
+def _bottom_crop_pil(img: Image.Image, percent: float) -> Image.Image:
+    if percent is None or percent <= 0 or percent > 1:
+        return img
+    w, h = img.size
     top = int(round(h * (1.0 - percent)))
-    return image.crop((0, top, w, h))
+    return img.crop((0, top, w, h))
 
-def ensure_rgb(img: Image.Image) -> Image.Image:
-    # If the image is mode "L" after edges, expand to RGB for 3-channel normalization
-    if img.mode != "RGB":
-        return img.convert("RGB")
-    return img
-
-# -----------------------------------------------------------------
-# Pre‑processing helpers
-# -----------------------------------------------------------------
-def canny_edge_preprocess(image_bgr: np.ndarray) -> np.ndarray:
-    """Canny → dilation → closing → convert back to 3‑channel BGR."""
-    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+def _canny_rgb(img_rgb: Image.Image) -> Image.Image:
+    """Run Canny in OpenCV space then return back to PIL RGB."""
+    if not _HAS_CV2:
+        return img_rgb
+    bgr = cv2.cvtColor(np.asarray(img_rgb), cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blur, 50, 150)
     edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
     edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
-    return cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+    bgr_edges = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+    rgb = cv2.cvtColor(bgr_edges, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(rgb)
+
+def _minmax(arr: np.ndarray, eps: float = 1e-8) -> np.ndarray:
+    mn, mx = float(arr.min()), float(arr.max())
+    return (arr - mn) / (mx - mn + eps)
+
+def _resize_map01(map_hw: np.ndarray, target_wh: Tuple[int, int]) -> np.ndarray:
+    w, h = target_wh
+    if _HAS_CV2:
+        return cv2.resize(map_hw, (w, h), interpolation=cv2.INTER_CUBIC)
+    pil = Image.fromarray((np.clip(map_hw, 0, 1) * 255).astype(np.uint8))
+    pil = pil.resize((w, h), Image.BICUBIC)
+    return np.asarray(pil).astype(np.float32) / 255.0
+
+def save_heatmap(heat01: np.ndarray, out_path: Union[str, Path]) -> None:
+    out = Path(out_path); out.parent.mkdir(parents=True, exist_ok=True)
+    h8 = (np.clip(heat01, 0, 1) * 255).astype(np.uint8)
+    if _HAS_CV2:
+        cv2.imwrite(str(out), cv2.applyColorMap(h8, cv2.COLORMAP_JET))
+    else:
+        Image.fromarray(h8).save(out)
+
+def save_overlay(rgb: np.ndarray, heat01: np.ndarray, out_path: Union[str, Path], alpha: float = 0.35) -> None:
+    out = Path(out_path); out.parent.mkdir(parents=True, exist_ok=True)
+    h8 = (np.clip(heat01, 0, 1) * 255).astype(np.uint8)
+    if _HAS_CV2:
+        color = cv2.applyColorMap(h8, cv2.COLORMAP_JET)
+        over = cv2.addWeighted(color, alpha, rgb[:, :, ::-1], 1.0 - alpha, 0)
+        cv2.imwrite(str(out), over)
+    else:
+        heat_rgb = np.stack([h8, h8, h8], axis=-1)
+        over = (alpha * heat_rgb + (1 - alpha) * rgb).astype(np.uint8)
+        Image.fromarray(over).save(out)
 
 
-# --------------------------------------------------------------------------- #
-# PaDiM Detector – inference only
-# --------------------------------------------------------------------------- #
+# -------------------- model --------------------
+
+@dataclass
+class _LegacyParams:
+    mus: Optional[np.ndarray] = None
+    cov_invs: Optional[np.ndarray] = None
+    H: Optional[int] = None
+    W: Optional[int] = None
+    D: Optional[int] = None
+    ch_idx: Optional[np.ndarray] = None
+
+
 class PaDiMDetector:
     """
-    PaDiM anomaly detector (inference‑only).
-
-    The detector can load:
-      * the *new* `.npz` format produced by the training script, **or**
-      * the *legacy* PaDiM format (``mus``, ``cov_invs`` …).
-
-    After loading, ``predict()`` returns the maximum Mahalanobis distance over
-    all image patches and a label (``"normal"`` / ``"anomaly"``) based on the
-    stored threshold.
+    PaDiM anomaly detector (ResNet18 backbone).
+    Matches the model formats you outlined in the repo.  [oai_citation:1‡GitHub](https://github.com/songhieng/ml-template/tree/29ecb9a32b4a931011dc4cbb4fca6f85d54155e5)
     """
-
-    # ------------------------------------------------------------------- #
-    # Construction
-    # ------------------------------------------------------------------- #
     def __init__(
         self,
-        layers: list = ["layer1", "layer2", "layer3"],
-        pca_components: int = 64,
+        layers: List[str] = ["layer1", "layer2", "layer3"],
         device: Optional[torch.device] = None,
+        bottom_crop: Optional[float] = 0.35,
+        use_canny: bool = True,
     ):
-        """
-        Parameters
-        ----------
-        layers : list
-            Names of ResNet‑18 layers to be used as feature sources.
-        pca_components : int
-            Number of PCA components (must match the value used during training).
-        device : torch.device | None
-            Execution device – defaults to CUDA if available.
-        """
-        self.device = device or torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
-        self.layers = layers
-        self.pca_components = pca_components
+        self.layers = list(layers)
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.bottom_crop = bottom_crop
+        self.use_canny = use_canny
 
-        # ----------------------------------------------------------------
-        # 1️⃣ Load the ResNet‑18 backbone (pre‑trained ImageNet weights)
-        # ----------------------------------------------------------------
         try:
             self.model = models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
-        except Exception:          # fallback for older torchvision versions
+        except Exception:
             self.model = models.resnet18(weights=None)
-
-        self.model.to(self.device)
-        self.model.eval()
+        self.model.to(self.device).eval()
         for p in self.model.parameters():
-            p.requires_grad = False
+            p.requires_grad_(False)
 
-        # ----------------------------------------------------------------
-        # 2️⃣ Hook the requested layers
-        # ----------------------------------------------------------------
-        self.features: dict = {}
+        self.features: Dict[str, torch.Tensor] = {}
         _register_feature_hooks(self.model, self.layers, self.features)
 
-        # ----------------------------------------------------------------
-        # 3️⃣ Image preprocessing (same as training)
-        # ----------------------------------------------------------------
-        self.transform = transforms.Compose(
-            [
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-            ]
-        )
-
-        # ----------------------------------------------------------------
-        # 4️⃣ Place‑holders for learned parameters (filled by ``load``)
-        # ----------------------------------------------------------------
+        # NEW
         self.pca: Optional[PCA] = None
         self.mean_vector: Optional[np.ndarray] = None
         self.covariance_inv: Optional[np.ndarray] = None
         self.threshold: Optional[float] = None
 
-        # legacy flag – set automatically inside ``load`` if needed
-        self.use_legacy_format: bool = False
+        # LEGACY
+        self._legacy = _LegacyParams()
+        self._use_legacy = False
 
-    # ------------------------------------------------------------------- #
-    # Private helpers
-    # ------------------------------------------------------------------- #
-    def _extract_patch_features(self, image_path: str) -> np.ndarray:
-        """
-        Extract multi‑scale patch features for *image_path*.
+    # -------- IO --------
 
-        Returns
-        -------
-        np.ndarray
-            Shape ``[num_patches, feature_dim]`` – one row per spatial patch.
-        """
-        # 1️⃣ Load & preprocess
-        img_bgr = cv2.imread(image_path)  # shape [H,W,3], BGR, uint8
-        if img_bgr is None:
-            raise FileNotFoundError(f"Could not read image: {image_path}")
+    def load(self, filepath: Union[str, Path]) -> None:
+        p = Path(filepath)
+        if not p.exists():
+            raise FileNotFoundError(f"Model file not found: {p}")
+        ext = p.suffix.lower()
 
-        img_bgr = crop_bottom_percent_pil(img_bgr, percent=0.35)
-        img_bgr = canny_edge_preprocess(img_bgr)  # ensure it returns uint8
+        if ext == ".pkl":
+            data = joblib.load(p)
+            self.pca = data["pca"]
+            self.mean_vector = data["mean_vector"]
+            self.covariance_inv = data["covariance_inv"]
+            self.threshold = float(data["threshold"])
+            self._use_legacy = False
+            return
 
-        # If edges are 1-channel, convert to 3-channel RGB
-        if img_bgr.ndim == 2:
-            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_GRAY2RGB)
-        else:
-            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+        if ext != ".npz":
+            raise ValueError(f"Unsupported model format: {ext} (use .npz or .pkl)")
 
-        img_pil = Image.fromarray(img_rgb)
+        data = np.load(p, allow_pickle=True)
 
-        # 2) To tensor
-        tensor = self.transform(img_pil).unsqueeze(0).to(self.device)
+        # NEW format
+        if {"pca_components", "pca_mean", "mean_vector", "covariance_inv", "threshold"} <= set(data.files):
+            d = data["pca_components"].shape[0]
+            pca = PCA(n_components=d)
+            pca.components_ = data["pca_components"]
+            pca.mean_ = data["pca_mean"]
+            self.pca = pca
+            self.mean_vector = data["mean_vector"]
+            self.covariance_inv = data["covariance_inv"]
+            self.threshold = float(data["threshold"])
+            self._use_legacy = False
+            return
 
-        # 3) Forward (hooks capture features)
-        self.features.clear()  # optional but safer between calls
+        # LEGACY format
+        if {"mus", "cov_invs", "H", "W", "D", "thresh"} <= set(data.files):
+            L = self._legacy
+            L.mus = data["mus"]
+            L.cov_invs = data["cov_invs"]
+            L.H = int(data["H"]); L.W = int(data["W"]); L.D = int(data["D"])
+            self.threshold = float(data["thresh"])
+            L.ch_idx = data["ch_idx"] if "ch_idx" in data.files else None
+            self._use_legacy = True
+            return
+
+        raise ValueError(f"Unknown model format. Keys={list(data.files)}")
+
+    # -------- features --------
+
+    def _extract_patch_features(self, img_path: Union[str, Path]) -> Tuple[np.ndarray, Tuple[int, int]]:
+        # PIL load first, then do optional bottom crop + canny (with proper type round-trips)
+        img = Image.open(img_path).convert("RGB")
+        if self.bottom_crop:
+            img = _bottom_crop_pil(img, self.bottom_crop)
+        if self.use_canny:
+            img = _canny_rgb(img)
+
+        tensor = _to_tensor(img).unsqueeze(0).to(self.device)
         with torch.no_grad():
             _ = self.model(tensor)
 
-        # 4) Align spatial sizes
         ref_h, ref_w = self.features[self.layers[-1]].shape[2:]
         collected = []
         for name in self.layers:
             fm = self.features[name]
             if fm.dim() != 4:
-                raise ValueError(f"Expected 4D feature map for {name}, got {fm.shape}")
-            fm = fm.squeeze(0)  # [C,H,W]
+                raise ValueError(f"Expected [N,C,H,W] for {name}, got {fm.shape}")
+            fm = fm.squeeze(0)
             if (fm.shape[1], fm.shape[2]) != (ref_h, ref_w):
-                fm = F.interpolate(
-                    fm.unsqueeze(0), size=(ref_h, ref_w),
-                    mode="bilinear", align_corners=False
-                ).squeeze(0)
+                fm = F.interpolate(fm.unsqueeze(0), size=(ref_h, ref_w), mode="bilinear", align_corners=False).squeeze(0)
             collected.append(fm)
 
-        # 5) Concatenate and flatten to patch vectors [N, C_total]
-        cat = torch.cat(collected, dim=0)               # [C_total, H, W]
-        patches = cat.reshape(cat.shape[0], -1).T.cpu().numpy()  # [H*W, C_total]
-        return patches
+        cat = torch.cat(collected, dim=0)                      # [C_total, H, W]
+        patches = cat.reshape(cat.shape[0], -1).T.cpu().numpy() # [H*W, C_total]
+        return patches, (ref_h, ref_w)
 
-    # ------------------------------------------------------------------- #
-    # Model loading
-    # ------------------------------------------------------------------- #
-    def load(self, filepath: str) -> None:
-        """
-        Load a model exported by the training script.
+    # -------- scoring --------
 
-        Supported formats:
-          * ``*.pkl`` – joblib dump containing ``pca``, ``mean_vector``,
-            ``covariance_inv`` and ``threshold``.
-          * ``*.npz`` – either the *new* PaDiM format (contains PCA) or the
-            *legacy* format (``mus``, ``cov_invs`` …).
+    def _score_new(self, patches: np.ndarray) -> np.ndarray:
+        assert self.pca is not None and self.mean_vector is not None and self.covariance_inv is not None
+        reduced = self.pca.transform(patches)  # (N, Dpca)
+        return np.array([mahalanobis(v, self.mean_vector, self.covariance_inv) for v in reduced], dtype=np.float32)
 
-        Raises
-        ------
-        FileNotFoundError
-            If ``filepath`` does not exist.
-        ValueError
-            If the file format is not recognised or required keys are missing.
-        """
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Model file not found: {filepath}")
-
-        ext = os.path.splitext(filepath)[1].lower()
-
-        # ----------------------------------------------------------------
-        # .pkl – straightforward joblib load
-        # ----------------------------------------------------------------
-        if ext == ".pkl":
-            data = joblib.load(filepath)
-            self.pca = data["pca"]
-            self.mean_vector = data["mean_vector"]
-            self.covariance_inv = data["covariance_inv"]
-            self.threshold = data["threshold"]
-            self.use_legacy_format = False
-            return
-
-        # ----------------------------------------------------------------
-        # .npz – could be *new* format (with PCA) or *legacy* format
-        # ----------------------------------------------------------------
-        if ext != ".npz":
-            raise ValueError(
-                "Unsupported model format. Expected *.pkl or *.npz, got "
-                f"{ext}"
-            )
-        data = np.load(filepath, allow_pickle=True)
-
-        # ----- New (refactored) format -----
-        if "pca_components" in data:
-            n_comp = data["pca_components"].shape[0]
-            self.pca = PCA(n_components=n_comp)
-            self.pca.components_ = data["pca_components"]
-            self.pca.mean_ = data["pca_mean"]
-            self.mean_vector = data["mean_vector"]
-            self.covariance_inv = data["covariance_inv"]
-            self.threshold = float(data["threshold"])
-            self.use_legacy_format = False
-            return
-
-        # ----- Legacy format -----
-        required_keys = {"mus", "cov_invs", "thresh", "H", "W", "D"}
-        if not required_keys.issubset(set(data.keys())):
-            missing = required_keys - set(data.keys())
-            raise ValueError(
-                f"Legacy model missing required keys: {missing}. "
-                "Check that you are loading a proper PaDiM legacy file."
-            )
-        self.legacy_mus = data["mus"]                # (H*W, D)
-        self.legacy_cov_invs = data["cov_invs"]      # (H*W, D, D)
-        self.threshold = float(data["thresh"])
-        self.legacy_H = int(data["H"])
-        self.legacy_W = int(data["W"])
-        self.legacy_D = int(data["D"])
-
-        # optional channel‑selection vector
-        self.legacy_ch_idx = data["ch_idx"] if "ch_idx" in data else np.arange(self.legacy_D)
-
-        self.use_legacy_format = True
-
-    # ------------------------------------------------------------------- #
-    # Legacy‑format inference (kept for backward compatibility)
-    # ------------------------------------------------------------------- #
-    def _predict_legacy(self, image_path: str) -> Tuple[float, str]:
-        """
-        Predict an anomaly score using the legacy model format.
-        """
-        # 1) Load & resize exactly as original training
-        img = Image.open(image_path).convert("RGB")
-        img = crop_bottom_percent_pil(img, percent=0.35)
-
-        # canny_edge_preprocess must accept/return PIL or adapt here
-        img = canny_edge_preprocess(img)  # ensure it returns PIL.Image
-        img = ensure_rgb(img)             # keep 3 channels for ImageNet stats
-
-        img = img.resize((224, 224), Image.LANCZOS)
-
-        # 2) Transform → tensor (ImageNet normalization)
-        trans = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-            ]
-        )
-        tensor = trans(img).unsqueeze(0).to(self.device)
-
-        # 3) Forward pass (hooks fill self.features)
-        if hasattr(self, "features"):
-            self.features.clear()
-        with torch.no_grad():
-            _ = self.model(tensor)
-
-        # 4) Gather feature maps resized to the legacy spatial size
-        target_hw = (self.legacy_H, self.legacy_W)  # (H, W)
-        feature_maps = []
-        for name in self.layers:
-            if name not in self.features:
-                continue
-            fm = self.features[name]
-            if fm.dim() != 4:
-                raise ValueError(f"Feature {name} must be [N,C,H,W], got {fm.shape}")
-            fm = fm.squeeze(0)  # [C, H, W]
-            h, w = fm.shape[1], fm.shape[2]
-            if (h, w) != target_hw:
-                fm = F.interpolate(
-                    fm.unsqueeze(0),  # [1,C,H,W]
-                    size=target_hw,
-                    mode="bilinear",
-                    align_corners=False,
-                ).squeeze(0)        # [C, Ht, Wt]
-            feature_maps.append(fm)
-
-        if not feature_maps:
-            return 0.0, "normal"
-
-        # 5) Concatenate → flatten to patches
-        cat = torch.cat(feature_maps, dim=0)                  # [C_total, Ht, Wt]
-        patches = cat.reshape(cat.shape[0], -1).T.cpu().numpy()  # [N=Ht*Wt, C_total]
-
-        # 6) Adjust dimensions to match the legacy model
-        cur_D = patches.shape[1]
-        if cur_D != self.legacy_D:
-            if cur_D < self.legacy_D:
-                repeat = self.legacy_D // cur_D
-                remainder = self.legacy_D % cur_D
-                blocks = [np.tile(patches, (1, repeat))]
-                if remainder > 0:
-                    blocks.append(patches[:, :remainder])
-                patches = np.hstack(blocks)
+    def _score_legacy(self, patches: np.ndarray, target_hw: Tuple[int, int]) -> np.ndarray:
+        L = self._legacy
+        assert L.mus is not None and L.cov_invs is not None and L.H is not None and L.W is not None and L.D is not None
+        Ht, Wt = target_hw
+        expected = L.H * L.W
+        # feature dim align
+        curD = patches.shape[1]
+        if curD != L.D:
+            if curD < L.D:
+                reps = L.D // curD
+                rem = L.D % curD
+                patches = np.tile(patches, (1, reps))
+                if rem: patches = np.hstack([patches, patches[:, :rem]])
             else:
-                patches = patches[:, : self.legacy_D]
-
-        cur_N = patches.shape[0]
-        expected_N = self.legacy_H * self.legacy_W
-        if cur_N != expected_N:
-            if cur_N < expected_N:
-                idx = np.tile(np.arange(cur_N), (expected_N // cur_N + 1))[:expected_N]
+                patches = patches[:, :L.D]
+        # spatial count align
+        curN = patches.shape[0]
+        if curN != expected:
+            if curN < expected:
+                idx = np.tile(np.arange(curN), (expected // curN + 1))[:expected]
                 patches = patches[idx]
             else:
-                idx = np.linspace(0, cur_N - 1, expected_N, dtype=int)
+                idx = np.linspace(0, curN - 1, expected, dtype=int)
                 patches = patches[idx]
 
-        # 7) Compute Mahalanobis distance per location
-        distances = []
-        D = patches.shape[1]
-
-        # Validate legacy stats dimensions once
-        if len(self.legacy_mus) != expected_N or len(self.legacy_cov_invs) != expected_N:
-            raise ValueError(
-                f"Legacy stats mismatch: expected {expected_N} locations, "
-                f"got mus={len(self.legacy_mus)}, cov_invs={len(self.legacy_cov_invs)}"
-            )
-
-        for i in range(expected_N):
-            patch = patches[i]
-            mu = self.legacy_mus[i]            # shape (D,) expected
-            cov_inv = self.legacy_cov_invs[i]  # shape (D,D) expected
-
-            # Align dimensions defensively
-            if mu.shape[0] != D:
-                if mu.shape[0] < D:
-                    patch = patch[: mu.shape[0]]
-                    D_i = mu.shape[0]
-                else:
-                    mu = mu[:D]
-                    cov_inv = cov_inv[:D, :D]
-                    D_i = D
-            else:
-                D_i = D
-
-            # Final safety for cov_inv
-            if cov_inv.shape != (D_i, D_i):
-                cov_inv = cov_inv[:D_i, :D_i]
-
-            diff = patch[:D_i] - mu[:D_i]
-            # Numerically stable Mahalanobis with abs guard
+        dists = np.empty(expected, dtype=np.float32)
+        for i in range(expected):
+            mu = L.mus[i]; cov_inv = L.cov_invs[i]
+            D = min(len(mu), patches.shape[1], cov_inv.shape[0])
+            diff = patches[i][:D] - mu[:D]
             try:
-                val = float(diff.T @ cov_inv @ diff)
-                dist = np.sqrt(val) if val >= 0 else np.sqrt(np.abs(val))
+                val = float(diff.T @ cov_inv[:D, :D] @ diff)
+                d = np.sqrt(val if val >= 0 else -val)
             except np.linalg.LinAlgError:
-                dist = float(np.linalg.norm(diff))
-            distances.append(dist)
+                d = float(np.linalg.norm(diff))
+            dists[i] = d
+        return dists.reshape(L.H, L.W).reshape(-1)  # flattened
 
-        anomaly_score = float(np.max(distances))
-        label = "anomaly" if anomaly_score > self.threshold else "normal"
-        return anomaly_score, label
+    # -------- public --------
 
-    # ------------------------------------------------------------------- #
-    # Public inference API
-    # ------------------------------------------------------------------- #
-    def predict(self, image_path: str) -> Tuple[float, str]:
-        """
-        Compute the anomaly score for *image_path*.
+    def predict(
+        self,
+        image_path: Union[str, Path],
+        return_map: bool = True,
+    ) -> Dict[str, Union[str, float, bool, np.ndarray]]:
+        patches, (fh, fw) = self._extract_patch_features(image_path)
+        if self._use_legacy:
+            dists = self._score_legacy(patches, (fh, fw))
+            fmap = dists.reshape(self._legacy.H, self._legacy.W)
+        else:
+            dists = self._score_new(patches)
+            fmap = dists.reshape(fh, fw)
 
-        Returns
-        -------
-        tuple (score, label)
-            *score* – maximal Mahalanobis distance over all patches.
-            *label* – ``"anomaly"`` if ``score > threshold`` else ``"normal"``.
-        """
-        if self.use_legacy_format:
-            return self._predict_legacy(image_path)
+        score = float(np.max(fmap))
+        thr = float(self.threshold) if self.threshold is not None else 0.0
+        cls = "anomaly" if score >= thr else "normal"
 
-        if self.pca is None:
-            raise RuntimeError(
-                "Model parameters not loaded. Call `load()` before `predict()`."
-            )
-
-        # 1️⃣ Extract raw multi‑scale patches
-        patches = self._extract_patch_features(image_path)
-
-        # 2️⃣ Reduce dimensionality with the stored PCA matrix
-        reduced = self.pca.transform(patches)          # (N, pca_components)
-
-        # 3️⃣ Mahalanobis distance per patch
-        dists = np.array(
-            [
-                mahalanobis(p, self.mean_vector, self.covariance_inv)
-                for p in reduced
-            ]
-        )
-
-        # 4️⃣ Final score & label
-        anomaly_score = float(dists.max())
-        label = "anomaly" if anomaly_score > self.threshold else "normal"
-        return anomaly_score, label
-
-
-# --------------------------------------------------------------------------- #
-# Convenience wrapper – one‑liner for typical usage
-# --------------------------------------------------------------------------- #
-def detect_anomaly(image_path: str, model_path: str) -> Dict[str, object]:
-    """
-    Load a PaDiM model and return a dictionary with the detection result.
-
-    Parameters
-    ----------
-    image_path : str
-        Path to the image to be inspected.
-    model_path : str
-        Path to the ``.npz`` or ``.pkl`` model file produced by the training script.
-
-    Returns
-    -------
-    dict
-        ``{
-            "image_path": <str>,
-            "anomaly_score": <float>,
-            "classification": <"normal" | "anomaly">,
-            "is_anomaly": <bool>
-        }```
-    """
-    detector = PaDiMDetector()
-    detector.load(model_path)
-    score, label = detector.predict(image_path)
-
-    return {
-        "image_path": str(image_path),
-        "anomaly_score": score,
-        "classification": label,
-        "is_anomaly": label == "anomaly",
-    }
+        out: Dict[str, Union[str, float, bool, np.ndarray]] = {
+            "image_path": str(image_path),
+            "anomaly_score": score,
+            "classification": cls,
+            "is_anomaly": (cls == "anomaly"),
+        }
+        if return_map:
+            img = Image.open(image_path).convert("RGB")
+            heat = _minmax(fmap)
+            out["map"] = _resize_map01(heat, img.size)
+        return out
