@@ -1,332 +1,537 @@
-{
-  "features": [
-    "eyes_cdelta_0",
-    "eyes_cdelta_1",
-    "eyes_cdelta_2",
-    "eyes_cdelta_3",
-    "eyes_cdelta_4",
-    "eyes_cdelta_5",
-    "eyes_dct_0",
-    "eyes_dct_1",
-    "eyes_dct_2",
-    "eyes_dct_3",
-    "eyes_dct_4",
-    "eyes_dct_5",
-    "eyes_g_diff",
-    "eyes_g_inner",
-    "eyes_g_ring",
-    "eyes_srm_inner_0",
-    "eyes_srm_inner_1",
-    "eyes_srm_inner_2",
-    "eyes_srm_inner_3",
-    "eyes_srm_inner_4",
-    "eyes_srm_inner_5",
-    "eyes_srm_ring_0",
-    "eyes_srm_ring_1",
-    "eyes_srm_ring_2",
-    "eyes_srm_ring_3",
-    "eyes_srm_ring_4",
-    "eyes_srm_ring_5",
-    "face_cdelta_0",
-    "face_cdelta_1",
-    "face_cdelta_2",
-    "face_cdelta_3",
-    "face_cdelta_4",
-    "face_cdelta_5",
-    "face_dct_0",
-    "face_dct_1",
-    "face_dct_2",
-    "face_dct_3",
-    "face_dct_4",
-    "face_dct_5",
-    "face_g_diff",
-    "face_g_inner",
-    "face_g_ring",
-    "face_srm_inner_0",
-    "face_srm_inner_1",
-    "face_srm_inner_2",
-    "face_srm_inner_3",
-    "face_srm_inner_4",
-    "face_srm_inner_5",
-    "face_srm_ring_0",
-    "face_srm_ring_1",
-    "face_srm_ring_2",
-    "face_srm_ring_3",
-    "face_srm_ring_4",
-    "face_srm_ring_5",
-    "mouth_cdelta_0",
-    "mouth_cdelta_1",
-    "mouth_cdelta_2",
-    "mouth_cdelta_3",
-    "mouth_cdelta_4",
-    "mouth_cdelta_5",
-    "mouth_dct_0",
-    "mouth_dct_1",
-    "mouth_dct_2",
-    "mouth_dct_3",
-    "mouth_dct_4",
-    "mouth_dct_5",
-    "mouth_g_diff",
-    "mouth_g_inner",
-    "mouth_g_ring",
-    "mouth_srm_inner_0",
-    "mouth_srm_inner_1",
-    "mouth_srm_inner_2",
-    "mouth_srm_inner_3",
-    "mouth_srm_inner_4",
-    "mouth_srm_inner_5",
-    "mouth_srm_ring_0",
-    "mouth_srm_ring_1",
-    "mouth_srm_ring_2",
-    "mouth_srm_ring_3",
-    "mouth_srm_ring_4",
-    "mouth_srm_ring_5",
-    "nose_cdelta_0",
-    "nose_cdelta_1",
-    "nose_cdelta_2",
-    "nose_cdelta_3",
-    "nose_cdelta_4",
-    "nose_cdelta_5",
-    "nose_dct_0",
-    "nose_dct_1",
-    "nose_dct_2",
-    "nose_dct_3",
-    "nose_dct_4",
-    "nose_dct_5",
-    "nose_g_diff",
-    "nose_g_inner",
-    "nose_g_ring",
-    "nose_srm_inner_0",
-    "nose_srm_inner_1",
-    "nose_srm_inner_2",
-    "nose_srm_inner_3",
-    "nose_srm_inner_4",
-    "nose_srm_inner_5",
-    "nose_srm_ring_0",
-    "nose_srm_ring_1",
-    "nose_srm_ring_2",
-    "nose_srm_ring_3",
-    "nose_srm_ring_4",
-    "nose_srm_ring_5"
-  ],
-  "mu": {
-    "eyes_cdelta_0": 15.162747383117676,
-    "eyes_cdelta_1": 0.6259337067604065,
-    "eyes_cdelta_2": 2.661546230316162,
-    "eyes_cdelta_3": 0.5843237042427063,
-    "eyes_cdelta_4": -2.0611155033111572,
-    "eyes_cdelta_5": 0.5800861716270447,
-    "eyes_dct_0": 0.9682139754295349,
-    "eyes_dct_1": 0.006633750628679991,
-    "eyes_dct_2": 0.02061714045703411,
-    "eyes_dct_3": 0.006113423500210047,
-    "eyes_dct_4": 0.011168905533850193,
-    "eyes_dct_5": 0.0015278031351044774,
-    "eyes_g_diff": -4.963082790374756,
-    "eyes_g_inner": 36.42823791503906,
-    "eyes_g_ring": 31.46515464782715,
-    "eyes_srm_inner_0": -99.56149291992188,
-    "eyes_srm_inner_1": 12.094472885131836,
-    "eyes_srm_inner_2": 0.1953391581773758,
-    "eyes_srm_inner_3": 2.3818047046661377,
-    "eyes_srm_inner_4": 0.03477379307150841,
-    "eyes_srm_inner_5": 2.291221857070923,
-    "eyes_srm_ring_0": -113.80415344238281,
-    "eyes_srm_ring_1": 11.767065048217773,
-    "eyes_srm_ring_2": -0.011022194288671017,
-    "eyes_srm_ring_3": 1.8390778303146362,
-    "eyes_srm_ring_4": -0.006731497123837471,
-    "eyes_srm_ring_5": 2.113400459289551,
-    "face_cdelta_0": -2.489785671234131,
-    "face_cdelta_1": 2.931638479232788,
-    "face_cdelta_2": -1.9236782789230347,
-    "face_cdelta_3": 0.9172082543373108,
-    "face_cdelta_4": 1.1095612049102783,
-    "face_cdelta_5": 0.4064505696296692,
-    "face_dct_0": 0.9713296890258789,
-    "face_dct_1": 0.008546356111764908,
-    "face_dct_2": 0.01705884374678135,
-    "face_dct_3": 0.007006730418652296,
-    "face_dct_4": 0.011611602269113064,
-    "face_dct_5": 0.0026247254572808743,
-    "face_g_diff": 2.602436065673828,
-    "face_g_inner": 23.06328010559082,
-    "face_g_ring": 25.66571807861328,
-    "face_srm_inner_0": -108.22008514404297,
-    "face_srm_inner_1": 17.37316131591797,
-    "face_srm_inner_2": 0.08378203958272934,
-    "face_srm_inner_3": 1.7462108135223389,
-    "face_srm_inner_4": -0.008901099674403667,
-    "face_srm_inner_5": 1.9884854555130005,
-    "face_srm_ring_0": -106.70763397216797,
-    "face_srm_ring_1": 20.569425582885742,
-    "face_srm_ring_2": 0.3956562280654907,
-    "face_srm_ring_3": 2.0492849349975586,
-    "face_srm_ring_4": 0.0115021588280797,
-    "face_srm_ring_5": 1.9976338148117065,
-    "mouth_cdelta_0": 4.365952014923096,
-    "mouth_cdelta_1": 1.2087206840515137,
-    "mouth_cdelta_2": -0.558800458908081,
-    "mouth_cdelta_3": 0.21005478501319885,
-    "mouth_cdelta_4": -0.8315950036048889,
-    "mouth_cdelta_5": 0.4010739028453827,
-    "mouth_dct_0": 0.9738923907279968,
-    "mouth_dct_1": 0.004726278595626354,
-    "mouth_dct_2": 0.015453540720045567,
-    "mouth_dct_3": 0.004204452037811279,
-    "mouth_dct_4": 0.010654128156602383,
-    "mouth_dct_5": 0.0012617079773917794,
-    "mouth_g_diff": -2.286658763885498,
-    "mouth_g_inner": 23.30316925048828,
-    "mouth_g_ring": 21.016510009765625,
-    "mouth_srm_inner_0": -105.82457733154297,
-    "mouth_srm_inner_1": 7.404708385467529,
-    "mouth_srm_inner_2": 0.13757926225662231,
-    "mouth_srm_inner_3": 1.496700406074524,
-    "mouth_srm_inner_4": 0.009382537566125393,
-    "mouth_srm_inner_5": 1.7964205741882324,
-    "mouth_srm_ring_0": -108.69660949707031,
-    "mouth_srm_ring_1": 8.973929405212402,
-    "mouth_srm_ring_2": 0.014230492524802685,
-    "mouth_srm_ring_3": 1.4159953594207764,
-    "mouth_srm_ring_4": 0.0014912199694663286,
-    "mouth_srm_ring_5": 1.84540593624115,
-    "nose_cdelta_0": -1.867854356765747,
-    "nose_cdelta_1": 2.4135546684265137,
-    "nose_cdelta_2": -0.4462384283542633,
-    "nose_cdelta_3": 0.4862479269504547,
-    "nose_cdelta_4": 0.3299823999404907,
-    "nose_cdelta_5": 0.5092024207115173,
-    "nose_dct_0": 0.9766175746917725,
-    "nose_dct_1": 0.00435201870277524,
-    "nose_dct_2": 0.013948512263596058,
-    "nose_dct_3": 0.004208057653158903,
-    "nose_dct_4": 0.009433792904019356,
-    "nose_dct_5": 0.0009121406474150717,
-    "nose_g_diff": -1.1317473649978638,
-    "nose_g_inner": 23.06562614440918,
-    "nose_g_ring": 21.933879852294922,
-    "nose_srm_inner_0": -128.50645446777344,
-    "nose_srm_inner_1": 5.9910569190979,
-    "nose_srm_inner_2": -0.4827404022216797,
-    "nose_srm_inner_3": 1.4843368530273438,
-    "nose_srm_inner_4": 1.0446391570440028e-05,
-    "nose_srm_inner_5": 1.8818763494491577,
-    "nose_srm_ring_0": -126.00967407226562,
-    "nose_srm_ring_1": 8.286843299865723,
-    "nose_srm_ring_2": -0.1979060024023056,
-    "nose_srm_ring_3": 1.5609955787658691,
-    "nose_srm_ring_4": -0.00031396409031003714,
-    "nose_srm_ring_5": 1.7801471948623657
-  },
-  "sd": {
-    "eyes_cdelta_0": 4.409214496612549,
-    "eyes_cdelta_1": 1.7210232019424438,
-    "eyes_cdelta_2": 1.6944036483764648,
-    "eyes_cdelta_3": 0.5512512922286987,
-    "eyes_cdelta_4": 1.0847890377044678,
-    "eyes_cdelta_5": 0.44802263379096985,
-    "eyes_dct_0": 0.0059615508653223515,
-    "eyes_dct_1": 0.002175806788727641,
-    "eyes_dct_2": 0.004896247293800116,
-    "eyes_dct_3": 0.0021017512772232294,
-    "eyes_dct_4": 0.0021753970067948103,
-    "eyes_dct_5": 0.0005393896717578173,
-    "eyes_g_diff": 5.77089262008667,
-    "eyes_g_inner": 9.448235511779785,
-    "eyes_g_ring": 7.893012046813965,
-    "eyes_srm_inner_0": 35.12971115112305,
-    "eyes_srm_inner_1": 3.0056657791137695,
-    "eyes_srm_inner_2": 0.10809514671564102,
-    "eyes_srm_inner_3": 0.6989244818687439,
-    "eyes_srm_inner_4": 0.04357507824897766,
-    "eyes_srm_inner_5": 0.37080439925193787,
-    "eyes_srm_ring_0": 33.96841049194336,
-    "eyes_srm_ring_1": 3.3476414680480957,
-    "eyes_srm_ring_2": 0.0710693970322609,
-    "eyes_srm_ring_3": 0.4747627377510071,
-    "eyes_srm_ring_4": 0.014340043999254704,
-    "eyes_srm_ring_5": 0.30490678548812866,
-    "face_cdelta_0": 3.797119617462158,
-    "face_cdelta_1": 3.023977756500244,
-    "face_cdelta_2": 0.5718212723731995,
-    "face_cdelta_3": 0.8308955430984497,
-    "face_cdelta_4": 0.4584059417247772,
-    "face_cdelta_5": 0.4441125690937042,
-    "face_dct_0": 0.005786396563053131,
-    "face_dct_1": 0.0034263241104781628,
-    "face_dct_2": 0.003912565764039755,
-    "face_dct_3": 0.002704867860302329,
-    "face_dct_4": 0.002642775885760784,
-    "face_dct_5": 0.0012748969020321965,
-    "face_g_diff": 3.270622730255127,
-    "face_g_inner": 6.377330780029297,
-    "face_g_ring": 4.80226469039917,
-    "face_srm_inner_0": 31.32453155517578,
-    "face_srm_inner_1": 5.055312633514404,
-    "face_srm_inner_2": 0.1912512332201004,
-    "face_srm_inner_3": 0.36289164423942566,
-    "face_srm_inner_4": 0.02446649596095085,
-    "face_srm_inner_5": 0.22431816160678864,
-    "face_srm_ring_0": 32.8735466003418,
-    "face_srm_ring_1": 6.110151290893555,
-    "face_srm_ring_2": 0.23582987487316132,
-    "face_srm_ring_3": 0.40204110741615295,
-    "face_srm_ring_4": 0.016253793612122536,
-    "face_srm_ring_5": 0.2066485434770584,
-    "mouth_cdelta_0": 4.470485210418701,
-    "mouth_cdelta_1": 1.6782200336456299,
-    "mouth_cdelta_2": 0.8425718545913696,
-    "mouth_cdelta_3": 0.35074448585510254,
-    "mouth_cdelta_4": 0.5913093686103821,
-    "mouth_cdelta_5": 0.39223769307136536,
-    "mouth_dct_0": 0.006512698717415333,
-    "mouth_dct_1": 0.0018674344755709171,
-    "mouth_dct_2": 0.004412679001688957,
-    "mouth_dct_3": 0.0017595664830878377,
-    "mouth_dct_4": 0.002704296726733446,
-    "mouth_dct_5": 0.0006413232767954469,
-    "mouth_g_diff": 6.081336498260498,
-    "mouth_g_inner": 9.034646987915039,
-    "mouth_g_ring": 5.619840145111084,
-    "mouth_srm_inner_0": 33.77145004272461,
-    "mouth_srm_inner_1": 3.106839418411255,
-    "mouth_srm_inner_2": 0.08267774432897568,
-    "mouth_srm_inner_3": 0.30696260929107666,
-    "mouth_srm_inner_4": 0.030955879017710686,
-    "mouth_srm_inner_5": 0.27086931467056274,
-    "mouth_srm_ring_0": 34.768287658691406,
-    "mouth_srm_ring_1": 4.253386974334717,
-    "mouth_srm_ring_2": 0.05048385262489319,
-    "mouth_srm_ring_3": 0.28874820470809937,
-    "mouth_srm_ring_4": 0.013437103480100632,
-    "mouth_srm_ring_5": 0.2609679698944092,
-    "nose_cdelta_0": 2.6136937141418457,
-    "nose_cdelta_1": 2.5308024883270264,
-    "nose_cdelta_2": 0.3308837115764618,
-    "nose_cdelta_3": 0.3273240625858307,
-    "nose_cdelta_4": 0.44996702671051025,
-    "nose_cdelta_5": 0.48857203125953674,
-    "nose_dct_0": 0.0036098798736929893,
-    "nose_dct_1": 0.0013574599288403988,
-    "nose_dct_2": 0.003356276312842965,
-    "nose_dct_3": 0.0012461049482226372,
-    "nose_dct_4": 0.001792047987692058,
-    "nose_dct_5": 0.00021206511883065104,
-    "nose_g_diff": 6.750787258148193,
-    "nose_g_inner": 11.534361839294434,
-    "nose_g_ring": 6.909512996673584,
-    "nose_srm_inner_0": 32.952720642089844,
-    "nose_srm_inner_1": 2.216266632080078,
-    "nose_srm_inner_2": 0.5791561603546143,
-    "nose_srm_inner_3": 0.6235870718955994,
-    "nose_srm_inner_4": 0.05261620879173279,
-    "nose_srm_inner_5": 0.3858813941478729,
-    "nose_srm_ring_0": 33.62824249267578,
-    "nose_srm_ring_1": 2.818668842315674,
-    "nose_srm_ring_2": 0.15831346809864044,
-    "nose_srm_ring_3": 0.3544277548789978,
-    "nose_srm_ring_4": 0.009701864793896675,
-    "nose_srm_ring_5": 0.2513766884803772
-  }
-}
+#!/usr/bin/env python3
+import os, argparse, random, shutil, math
+import numpy as np
+from PIL import Image
+from tqdm import tqdm
+
+import cv2
+import torch
+import torch.nn.functional as F
+from torchvision import models, transforms
+from sklearn.covariance import LedoitWolf
+
+from ultralytics import YOLO
+
+# ----------------------------
+# Globals
+# ----------------------------
+IMG_SIZE = 224
+VALID_EXT = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
+FEATURES = {}
+LAYER_NAMES = ['layer2', 'layer3', 'layer4']
+
+# ----------------------------
+# Utility: list images
+# ----------------------------
+def list_images(d):
+    if not os.path.isdir(d):
+        return []
+    return sorted([os.path.join(d, f) for f in os.listdir(d)
+                   if f.lower().endswith(VALID_EXT)])
+
+# ----------------------------
+# Device helper
+# ----------------------------
+def get_device(name):
+    if name == 'auto':
+        return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    return torch.device(name)
+
+# ----------------------------
+# Feature hook for PaDiM
+# ----------------------------
+def get_hook(name):
+    def hook(module, input, output):
+        FEATURES[name] = output.detach()
+    return hook
+
+def build_backbone(device):
+    try:
+        weights = models.ResNet101_Weights.DEFAULT
+        net = models.resnet101(weights=weights).to(device).eval()
+    except Exception:
+        net = models.resnet101(pretrained=True).to(device).eval()
+    for p in net.parameters():
+        p.requires_grad = False
+    for name, module in net.named_children():
+        if name in LAYER_NAMES:
+            module.register_forward_hook(get_hook(name))
+    return net
+
+# ----------------------------
+# Transforms
+# ----------------------------
+def build_transforms(train=False):
+    if train:
+        return transforms.Compose([
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.RandomApply([transforms.GaussianBlur(3)], p=0.2),
+            transforms.RandomAffine(degrees=3, translate=(0.02, 0.02), scale=(0.97, 1.03)),
+            transforms.ColorJitter(brightness=0.08, contrast=0.08),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406],
+                                 [0.229, 0.224, 0.225]),
+        ])
+    else:
+        return transforms.Compose([
+            transforms.Resize((IMG_SIZE, IMG_SIZE)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406],
+                                 [0.229, 0.224, 0.225]),
+        ])
+
+# ----------------------------
+# MRZ Detection (YOLO-OBB) Stub
+# ----------------------------
+
+# --- YOLO-OBB MRZ Loader + Detector (Ultralytics) ---
+# pip install ultralytics==8.*  (or the YOLO 11 release if you use it)
+
+# If your crop function uses cv2.getRotationMatrix2D(center, angle, ...)
+# and you want to align the rotated rect horizontally, you may need
+# to rotate by -angle instead of +angle. Adjust this if crops look skewed.
+_model = None
+_names = None
+
+ROTATE_SIGN = -1  # adjust if crops look rotated incorrectly
+
+def load_mrz_model(weights_path="obb-mrz/best.pt"):
+    model = YOLO(weights_path)
+    names = model.model.names if hasattr(model, "model") else model.names
+    return model, names
+
+def load_mrz_model(weights_path="obb-mrz/best.pt"):
+    """
+    Loads the Ultralytics YOLO OBB model.
+    Returns (model, names) where names is id->class name dict.
+    """
+    model = YOLO(weights_path)
+    names = model.model.names if hasattr(model, "model") else model.names
+    return model, names
+
+def _resolve_target_class_id(target_class, names):
+    """
+    target_class: int class id or str class name (e.g., "mrz")
+    names: id->name dict from YOLO
+    Returns class_id or None if not filtering.
+    """
+    if target_class is None:
+        return None
+    if isinstance(target_class, int):
+        return target_class
+    if isinstance(target_class, str):
+        # find id by name (case-insensitive)
+        for cid, cname in names.items():
+            if cname.lower() == target_class.lower():
+                return cid
+        raise ValueError(f"Class '{target_class}' not found in model names: {names}")
+    raise ValueError("target_class must be int, str, or None")
+
+def _xywhr_to_tuple(xywhr_row):
+    """
+    xywhr_row: [cx, cy, w, h, r] with r in radians (ultralytics OBB)
+    Returns (cx, cy, w, h, angle_deg)
+    """
+    cx, cy, w, h, r = xywhr_row.tolist()
+    angle_deg = float(np.degrees(r))
+    return float(cx), float(cy), float(w), float(h), float(angle_deg)
+
+def _poly_to_minrect(poly8):
+    """
+    poly8: [x1,y1,x2,y2,x3,y3,x4,y4]
+    Returns (cx, cy, w, h, angle_deg) using cv2.minAreaRect
+    Angle normalized to (-90, 90] degrees, CCW positive.
+    """
+    pts = np.array(poly8, dtype=np.float32).reshape(-1, 2)
+    (cx, cy), (w, h), angle = cv2.minAreaRect(pts)
+    # OpenCV angle in (-90, 0]; if w < h, swap to keep angle stable
+    if w < h:
+        w, h = h, w
+        angle = angle + 90.0
+    # Normalize to (-90, 90]
+    if angle <= -90:
+        angle += 180.0
+    if angle > 90:
+        angle -= 180.0
+    return float(cx), float(cy), float(w), float(h), float(angle)
+
+@torch.no_grad()
+def detect_mrz_obb_ultra(
+    image_bgr,
+    model,
+    names=None,
+    device="cpu",
+    imgsz=1024,
+    conf=0.25,
+    iou=0.5,
+    target_class=None,  # int id or str name, or None for all
+    max_det=50
+):
+    """
+    Runs OBB detection and returns list of (cx, cy, w, h, angle_deg, conf, cls_id).
+    All geometry in pixel units, angle in degrees (CCW).
+    """
+    if names is None:
+        names = model.model.names if hasattr(model, "model") else model.names
+
+    class_id = _resolve_target_class_id(target_class, names)
+
+    # Ultralytics can accept numpy arrays; ensure RGB order
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+
+    results = model.predict(
+        source=image_rgb,
+        task="obb",
+        imgsz=imgsz,
+        conf=conf,
+        iou=iou,
+        max_det=max_det,
+        device=0 if (device == "auto" and torch.cuda.is_available()) else device,
+        verbose=False
+    )
+
+    if not results:
+        return []
+
+    res = results[0]
+    out = []
+
+    # Prefer xywhr if available
+    xywhr = getattr(getattr(res, "obb", None), "xywhr", None)
+    cls_arr = getattr(getattr(res, "obb", None), "cls", None)
+    conf_arr = getattr(getattr(res, "obb", None), "conf", None)
+
+    if xywhr is not None:
+        xywhr_np = xywhr.cpu().numpy()
+        cls_np = cls_arr.cpu().numpy() if cls_arr is not None else np.zeros(len(xywhr_np))
+        conf_np = conf_arr.cpu().numpy() if conf_arr is not None else np.ones(len(xywhr_np))
+        for i in range(xywhr_np.shape[0]):
+            cx, cy, w, h, angle_deg = _xywhr_to_tuple(xywhr_np[i])
+            cid = int(cls_np[i])
+            if (class_id is not None) and (cid != class_id):
+                continue
+            out.append((cx, cy, w, h, angle_deg, float(conf_np[i]), cid))
+
+    else:
+        # Fallback: reconstruct from polygons
+        polys = getattr(getattr(res, "obb", None), "xyxyxyxy", None)
+        cls_arr = getattr(getattr(res, "obb", None), "cls", None)
+        conf_arr = getattr(getattr(res, "obb", None), "conf", None)
+        if polys is None:
+            return out
+        polys_np = polys.cpu().numpy()
+        cls_np = cls_arr.cpu().numpy() if cls_arr is not None else np.zeros(len(polys_np))
+        conf_np = conf_arr.cpu().numpy() if conf_arr is not None else np.ones(len(polys_np))
+        for i in range(polys_np.shape[0]):
+            cx, cy, w, h, angle_deg = _poly_to_minrect(polys_np[i])
+            cid = int(cls_np[i])
+            if (class_id is not None) and (cid != class_id):
+                continue
+            out.append((cx, cy, w, h, angle_deg, float(conf_np[i]), cid))
+
+    return out
+
+# --- Example usage ---
+# model, names = load_mrz_model("obb-mrz/best.pt")
+# detections = detect_mrz_obb_ultra(bgr_image, model, names, target_class="mrz", conf=0.25, iou=0.5)
+# for cx, cy, w, h, angle_deg, conf, cid in detections:
+#     print(cx, cy, w, h, angle_deg, conf, names[cid])
+
+def detect_mrz_obb(image_bgr):
+    """
+    Runs actual YOLO‑OBB MRZ detection using obb-mrz/best.pt.
+    Returns list of (cx, cy, w, h, angle_deg) in pixel units.
+    """
+    global _model, _names
+    if _model is None:
+        _model, _names = load_mrz_model("obb-mrz/best.pt")
+
+    detections = detect_mrz_obb_ultra(
+        image_bgr,
+        _model,
+        names=_names,
+        target_class="mrz_line",  # or None for all classes
+        conf=0.25,
+        iou=0.5
+    )
+    # print(detections)
+
+    # Strip to the format you want (drop conf, class id)
+    return [(cx, cy, w, h, angle_deg) for cx, cy, w, h, angle_deg, conf, cid in detections]
+
+# ----------------------------
+# Crop rotated OBB
+# ----------------------------
+def crop_obb_region(image_bgr, obb):
+    cx, cy, bw, bh, angle_deg = obb[:5]
+    M = cv2.getRotationMatrix2D((cx, cy), ROTATE_SIGN * angle_deg, 1.0)
+    rotated = cv2.warpAffine(image_bgr, M, (image_bgr.shape[1], image_bgr.shape[0]))
+    x0, y0 = int(cx - bw/2), int(cy - bh/2)
+    x1, y1 = int(cx + bw/2), int(cy + bh/2)
+    return rotated[max(0,y0):max(0,y1), max(0,x0):max(0,x1)]
+
+
+
+# ----------------------------
+# Edge Detection Preprocessing
+# ----------------------------
+
+def canny_edge_preprocess(image_bgr):
+    """
+    Edge detection using Gaussian blur + Canny + dilation + close morphology.
+    Returns a 3-channel BGR version of the edge mask.
+    """
+    # Convert to grayscale
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+
+    # Light smoothing to reduce noise while preserving edges
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Canny edge detection
+    edges = cv2.Canny(blur, 50, 150)
+
+    # Dilate to strengthen and connect edges
+    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
+
+    # Morphological closing to fill small gaps in edges
+    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+
+    # Convert to 3-channel BGR for consistent downstream usage
+    edges_bgr = cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR)
+    return edges_bgr
+# ----------------------------
+# ELA Preprocessing
+# ----------------------------
+def ela_preprocess(image_bgr, quality=30, scale=10, dynamic=False):
+    """
+    Error Level Analysis (ELA) preprocessing.
+    - Re-compresses the image at given JPEG quality.
+    - Computes absolute difference (residual) between original and JPEG.
+    - Scales residual to enhance visibility.
+    
+    Args:
+        image_bgr (np.ndarray): uint8 BGR image.
+        quality (int): JPEG quality for re-compression (typ. 85–95).
+        scale (float): Fixed amplification factor if dynamic=False.
+        dynamic (bool): If True, dynamically stretches residual to full 0–255.
+
+    Returns:
+        np.ndarray: uint8 BGR ELA map.
+    """
+    if image_bgr is None or image_bgr.size == 0:
+        raise ValueError("Empty image passed to ela_preprocess")
+
+    # Ensure 3-channel BGR uint8
+    if image_bgr.ndim == 2:
+        image_bgr = cv2.cvtColor(image_bgr, cv2.COLOR_GRAY2BGR)
+    if image_bgr.dtype != np.uint8:
+        image_bgr = np.clip(image_bgr, 0, 255).astype(np.uint8)
+
+    # JPEG re-compression
+    encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), int(np.clip(quality, 1, 100))]
+    ok, enc = cv2.imencode(".jpg", image_bgr, encode_params)
+    if not ok:
+        raise RuntimeError("JPEG encoding failed in ela_preprocess")
+    jpeg_bgr = cv2.imdecode(enc, cv2.IMREAD_COLOR)
+
+    # Residual (differences in compression error)
+    diff = cv2.absdiff(image_bgr, jpeg_bgr).astype(np.float32)
+
+    if dynamic:
+        # Stretch to full dynamic range per-image
+        max_val = diff.max()
+        if max_val < 1e-6:
+            ela = np.zeros_like(diff, dtype=np.uint8)
+        else:
+            ela = np.clip(255.0 * diff / max_val, 0, 255).astype(np.uint8)
+    else:
+        # Fixed amplification (stable across dataset)
+        ela = np.clip(diff * float(scale), 0, 255).astype(np.uint8)
+
+    return ela
+
+# ----------------------------
+# PaDiM Feature Extraction
+# ----------------------------
+@torch.no_grad()
+def extract_concat_feats(model, device, img_pil, tf):
+    FEATURES.clear()
+    x = tf(img_pil).unsqueeze(0).to(device)
+    _ = model(x)
+    f2 = FEATURES['layer2']
+    _, _, H2, W2 = f2.shape
+    f3 = FEATURES['layer3']
+    f4 = FEATURES['layer4']
+    f3_up = F.interpolate(f3, size=(H2, W2), mode='bilinear', align_corners=False)
+    f4_up = F.interpolate(f4, size=(H2, W2), mode='bilinear', align_corners=False)
+    feat = torch.cat([f2, f3_up, f4_up], dim=1).squeeze(0)
+    feat = feat.permute(1, 2, 0).reshape(-1, feat.shape[0])
+    return feat.cpu().numpy(), (H2, W2)
+
+# ----------------------------
+# TRAIN
+# ----------------------------
+def train(args):
+    device = get_device(args.device)
+    model = build_backbone(device)
+    
+    # Original train/inference transforms
+    TF_TRN = build_transforms(train=True)
+    TF_INF = build_transforms(train=False)
+
+    # Extra rotation augment (±15 degrees for example)
+    ROT_AUG = transforms.RandomRotation(degrees=(-15, 15))
+
+    train_files = list_images(args.train_dir)
+    if not train_files:
+        return
+
+    # Process 1 sample for shape
+    sample_bgr = cv2.imread(train_files[0])
+    obb_list = detect_mrz_obb(sample_bgr)
+    crop = canny_edge_preprocess(crop_obb_region(sample_bgr, obb_list[0]))
+    sample_img = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+
+    base_feat, (H, W) = extract_concat_feats(model, device, sample_img, TF_INF)
+    P, Ctot = base_feat.shape
+    rng = np.random.RandomState(args.seed)
+    ch_idx = rng.choice(Ctot, size=args.D, replace=False)
+
+    X_list = []
+    for path in tqdm(train_files, desc="Extract feats (train)"):
+        bgr = cv2.imread(path)
+        for obb in detect_mrz_obb(bgr):
+            crop = canny_edge_preprocess(crop_obb_region(bgr, obb))
+            img_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+
+            # Original (no aug)
+            feats0, _ = extract_concat_feats(model, device, img_pil, TF_INF)
+            X_list.append(feats0[:, ch_idx])
+
+            # Augmentations
+            for _ in range(args.aug_times):
+                # Apply rotation BEFORE your other training transforms
+                aug_img = ROT_AUG(img_pil)
+                
+                FEATURES.clear()
+                x = TF_TRN(aug_img).unsqueeze(0).to(device)
+                _ = model(x)
+
+                f2 = FEATURES['layer2']
+                _, _, H2, W2 = f2.shape
+                f3 = FEATURES['layer3']
+                f4 = FEATURES['layer4']
+                f3_up = F.interpolate(f3, size=(H2, W2), mode='bilinear', align_corners=False)
+                f4_up = F.interpolate(f4, size=(H2, W2), mode='bilinear', align_corners=False)
+
+                feat = torch.cat([f2, f3_up, f4_up], dim=1).squeeze(0)
+                feat = feat.permute(1, 2, 0).reshape(-1, feat.shape[0]).cpu().numpy()
+                X_list.append(feat[:, ch_idx])
+
+    X = np.stack(X_list, axis=0)
+    mus = np.empty((P, args.D), dtype=np.float32)
+    cov_invs = np.empty((P, args.D, args.D), dtype=np.float32)
+    for p in tqdm(range(P), desc="Fit Gaussians per location"):
+        Xp = X[:, p, :]
+        lw = LedoitWolf().fit(Xp)
+        mus[p] = lw.location_.astype(np.float32)
+        cov_invs[p] = np.linalg.inv(lw.covariance_).astype(np.float32)
+
+    # Threshold calibration
+    top_k = max(10, int(0.02 * P))
+
+    def score_image(feats_PD):
+        delta = feats_PD - mus
+        d2 = np.einsum('pd,pde,pd->p', delta, cov_invs, delta)
+        d = np.sqrt(np.clip(d2, 0, None))
+        k = min(top_k, d.size)
+        return float(np.mean(np.partition(d, -k)[-k:]))
+
+    train_scores = []
+    for path in tqdm(train_files, desc="Calibrate on train"):
+        bgr = cv2.imread(path)
+        for obb in detect_mrz_obb(bgr):
+            crop = canny_edge_preprocess(crop_obb_region(bgr, obb))
+            img_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+            feats, _ = extract_concat_feats(model, device, img_pil, TF_INF)
+            train_scores.append(score_image(feats[:, ch_idx]))
+
+    thr = float(np.quantile(np.array(train_scores), 1.0 - args.target_fpr))
+    np.savez_compressed(
+        args.out,
+        mus=mus, cov_invs=cov_invs,
+        H=H, W=W, D=args.D, ch_idx=ch_idx,
+        thresh=thr, top_k=top_k
+    )
+    print(f"[TRAIN] Saved model to {args.out}  Threshold={thr:.6f}")
+
+@torch.no_grad()
+def infer(args):
+    device = get_device(args.device)
+    blob = np.load(args.model)
+    mus = blob['mus']; cov_invs = blob['cov_invs']
+    H = int(blob['H']); W = int(blob['W'])
+    D = int(blob['D']); ch_idx = blob['ch_idx']
+    thr = float(blob['thresh']); top_k = int(blob['top_k'])
+
+    model = build_backbone(device)
+    TF_INF = build_transforms(train=False)
+
+    test_files = list_images(args.test_dir)
+    out_norm = os.path.join(args.out_dir, "normal")
+    out_anom = os.path.join(args.out_dir, "anomaly")
+    os.makedirs(out_norm, exist_ok=True)
+    os.makedirs(out_anom, exist_ok=True)
+
+    for path in test_files:
+        bgr = cv2.imread(path)
+        img_score_total = 0
+        label = 'normal'
+        for obb in detect_mrz_obb(bgr):
+            crop = canny_edge_preprocess(crop_obb_region(bgr, obb))
+            # crop = crop_obb_region(bgr, obb)
+            img_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+            feats, (H2, W2) = extract_concat_feats(model, device, img_pil, TF_INF)
+            if (H2, W2) != (H, W):
+                print(f"[ERROR] Grid mismatch for {os.path.basename(path)}")
+                continue
+            feats = feats[:, ch_idx]
+            delta = feats - mus
+            d2 = np.einsum('pd,pde,pd->p', delta, cov_invs, delta)
+            d = np.sqrt(np.clip(d2, 0, None))
+            k = min(top_k, d.size)
+            score = float(np.mean(np.partition(d, -k)[-k:]))
+            img_score_total = max(img_score_total, score)
+            if score > thr:
+                label = 'anomaly'
+        print(f"{os.path.basename(path)} -> {img_score_total:.6f} [{label}]")
+        dst = out_anom if label == 'anomaly' else out_norm
+        shutil.copy(path, dst)
+
+def parse_args():
+    p = argparse.ArgumentParser("OBB + Sobel + PaDiM Pipeline")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    pt = sub.add_parser("train")
+    pt.add_argument("--train_dir", required=True)
+    pt.add_argument("--out", default="padim_model_r101.npz")
+    pt.add_argument("--device", default="cpu")
+    pt.add_argument("--D", type=int, default=100)
+    pt.add_argument("--aug_times", type=int, default=20)
+    pt.add_argument("--target_fpr", type=float, default=0.01)
+    pt.add_argument("--seed", type=int, default=0)
+
+    pi = sub.add_parser("infer")
+    pi.add_argument("--model", required=True)
+    pi.add_argument("--test_dir", required=True)
+    pi.add_argument("--device", default="cpu")
+    pi.add_argument("--out_dir", default="infer_outputs")
+
+    return p.parse_args()
+
+if __name__ == "__main__":
+    args = parse_args()
+    if args.cmd == "train":
+        train(args)
+    elif args.cmd == "infer":
+        infer(args)
