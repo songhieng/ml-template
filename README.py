@@ -772,4 +772,222 @@ Notes & tuning
 	•	corrZ_thresh, eH_face_thresh_norm, disp_face_thresh (3D-ness of the face).
 	•	Start with the defaults; then calibrate to your capture set for your desired BPCER@APCER.
 
+
+
+
+
+You’ve built a background-consistency detector (nice!), but right now it’s mostly deciding “live vs spoof” from what the background does. That’s fast and catches some easy replays, but it leaves big blind spots because it never looks at the face’s 3D behavior.
+
+Below is (1) a blunt assessment of what your current code can/can’t catch, and (2) a surgical upgrade plan with drop-in code snippets you can paste into your file to make it much harder to bypass—without blowing up latency or your API.
+
+⸻
+
+1) What your current code covers (honest take)
+
+Signals you use now
+	•	BG keypoint matches (SIFT/ORB), SSIM on BG, Farnebäck flow std on BG, BG homography inlier ratio.
+	•	Face is only used to mask it out (no geometry on the face).
+
+What it will catch reliably
+	•	Static planar replay in front of a stable background (same room, same camera) → planar BG + high SSIM → mark spoof.
+	•	Some obvious edits (frame crops/resizes) when BG keypoints mismatch.
+
+Likely to miss / fragile
+	•	Co-rotation: attacker rotates phone + print together → BG moves with the print: your logic can call this “live”.
+	•	Textureless BG (blank wall/curtain) → low matches → your rule “bg_inconsistent & movement → live” can false-accept.
+	•	Dynamic BG replay (pre-recorded room video behind a screen) → looks “live” to BG metrics.
+	•	3D masks / makeup / high-quality screen: no face-3D checks → pass if BG looks “inconsistent”.
+	•	Stream injection: unrelated to vision cues (needs origin hardening).
+
+Bottom line
+Ballpark: good at easy print/screen in static scenes, weak against co-rotation, dynamic replays, masks. Don’t expect more than “basic PAD” with this alone.
+
+⸻
+
+2) High-impact upgrades (keep your API, same speed class)
+
+Tier A — must-add (cheap + big payoff)
+	1.	Background stabilization + residual head motion gate
+Stabilize image2 to image1 by the background; then demand non-zero motion on the face but near-zero on the BG. This defeats co-rotation and forces real head motion.
+	2.	Face 3D geometry from two frames (camera-motion-invariant)
+	•	FaceMesh landmarks (468 pts) for both frames.
+	•	“Planarity vs. 3D” test on the face: fit a single homography on face points; compute residuals. The correlation between residual magnitude and FaceMesh depth (|z|) should be high for a real 3D face, low for a flat spoof.
+	•	Multi-patch homography dispersion on the face (nose/lips vs cheeks/forehead): 3D → high dispersion; planar → low.
+	3.	Simple fusion
+Replace the hard if/else with a 5–8 feature score (still no ML if you want), normalized by inter-ocular distance.
+
+Tier B — nice extras (still light)
+	•	Moiré / refresh artifact score (FFT peaks) to catch screen replays.
+	•	Iris foreshortening delta (ellipse ratio change L/R eye between frames).
+
+Tier C — policy hardening (outside vision)
+	•	Do not accept if either IMU rotation > ~5° (phone moved) or “stabilized residual head motion” is too small (user didn’t actually move).
+	•	Anti-injection: hash chain frames + per-session challenge token embedded in the UI and visible in pixels.
+
+⸻
+
+3) Drop-in code (pasteable blocks)
+
+Add these helpers near your other utility functions. They reuse your imports and style.
+
+(A) Background stabilization + residual motion
+
+def stabilize_by_background(img1: np.ndarray, img2: np.ndarray, mask_bg: np.ndarray):
+    """Warp img2 so the BACKGROUND aligns to img1. Returns (img2_stab, inliers, reproj_err)."""
+    g1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    g2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    kps1, d1, _ = detector._extract_features(g1, mask_bg.astype(np.uint8))
+    kps2, d2, _ = detector._extract_features(g2, mask_bg.astype(np.uint8))
+    matches = detector.match_descriptors(d1, d2, ratio=0.75)
+    if len(matches) < 30 or not kps1 or not kps2:
+        return img2, 0, None  # can't stabilize
+    pts1 = np.float32([kps1[m.queryIdx].pt for m in matches]).reshape(-1,1,2)
+    pts2 = np.float32([kps2[m.trainIdx].pt for m in matches]).reshape(-1,1,2)
+    H, inl = cv2.findHomography(pts2, pts1, cv2.RANSAC, 3.0)
+    if H is None or inl is None:
+        return img2, 0, None
+    img2s = cv2.warpPerspective(img2, H, (img1.shape[1], img1.shape[0]))
+    inliers = int(inl.ravel().sum())
+    reproj = cv2.perspectiveTransform(pts2[inl.ravel()==1], H)
+    err = float(np.mean(np.linalg.norm(reproj - pts1[inl.ravel()==1], axis=2)))
+    return img2s, inliers, err
+
+def residual_motion(img1: np.ndarray, img2s: np.ndarray, face_mask: np.ndarray, bg_mask: np.ndarray):
+    """Mean optical-flow magnitude on face vs background AFTER stabilization."""
+    g1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    g2 = cv2.cvtColor(img2s, cv2.COLOR_BGR2GRAY)
+    flow = cv2.calcOpticalFlowFarneback(g1, g2, None, 0.5, 3, 21, 3, 7, 1.5, 0)
+    mag = np.sqrt(flow[...,0]**2 + flow[...,1]**2)
+    mu_face = float(mag[face_mask.astype(bool)].mean()) if np.any(face_mask) else 0.0
+    mu_bg   = float(mag[bg_mask.astype(bool)].mean())   if np.any(bg_mask)   else 0.0
+    return mu_face, mu_bg
+
+(B) FaceMesh 3D residual-depth correlation (planarity vs 3D)
+
+def facemesh_xyZ(img: np.ndarray):
+    fm = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, refine_landmarks=True, max_num_faces=1)
+    res = fm.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    fm.close()
+    if not res.multi_face_landmarks:
+        return None, None
+    h, w = img.shape[:2]
+    lm = res.multi_face_landmarks[0].landmark
+    pts = np.array([[p.x*w, p.y*h] for p in lm], np.float32)       # (N,2)
+    Z   = np.array([abs(p.z) for p in lm], np.float32)             # (N,)
+    return pts, Z
+
+def face_planarity_features(pts0: np.ndarray, Z0: np.ndarray, pts1: np.ndarray):
+    """Fit a single homography on face landmarks; correlate residual with |Z| (protrusion)."""
+    if pts0 is None or pts1 is None or len(pts0)!=len(pts1) or len(pts0)<20:
+        return 0.0, 0.0
+    p0 = pts0.reshape(-1,1,2); p1 = pts1.reshape(-1,1,2)
+    H, inl = cv2.findHomography(p0, p1, cv2.RANSAC, 3.0)
+    if H is None or inl is None or inl.ravel().sum()<20:
+        return 0.0, 0.0
+    pred = cv2.perspectiveTransform(p0[inl.ravel()==1], H)
+    resid = np.linalg.norm(pred - p1[inl.ravel()==1], axis=2).ravel() + 1e-6
+    Zsel  = Z0[inl.ravel()==1] + 1e-6
+    # Pearson corr between residual and |Z| (nose/lips should have higher residual on real 3D)
+    corr = float(np.corrcoef(resid, Zsel)[0,1])
+    eH   = float(np.mean(resid))
+    return corr, eH  # higher corr → more 3D; lower corr → more planar
+
+(C) Multi-patch homography dispersion on the face
+
+def face_multiH_dispersion(img0: np.ndarray, img1s: np.ndarray, pts0: np.ndarray, pts1: np.ndarray, K: int = 8):
+    """Partition face landmarks into K spatial clusters; fit H per cluster; return parameter dispersion."""
+    if pts0 is None or pts1 is None or len(pts0)<40:
+        return 0.0
+    # k-means on 2D coords (OpenCV expects float32)
+    Z = np.float32(pts0)
+    K = min(K, len(pts0)//8) if len(pts0)>=64 else min(4, len(pts0)//6)
+    if K < 3: return 0.0
+    _, labels, centers = cv2.kmeans(Z, K, None,
+                                    (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 50, 1e-3),
+                                    3, cv2.KMEANS_PP_CENTERS)
+    Hs = []
+    p0 = pts0.reshape(-1,1,2); p1 = pts1.reshape(-1,1,2)
+    for k in range(K):
+        idx = np.where(labels.ravel()==k)[0]
+        if len(idx) < 8: continue
+        H, inl = cv2.findHomography(p0[idx], p1[idx], cv2.RANSAC, 3.0)
+        if H is not None: Hs.append(H.flatten())
+    if len(Hs) < 2: return 0.0
+    Hs = np.stack(Hs, axis=0)
+    return float(np.mean(np.std(Hs, axis=0)))  # dispersion index; higher → more 3D
+
+Integrate into your analyze_images(...)
+
+Inside analyze_images, after you create m1/m2 (BG masks) and have img1/img2:
+
+# Build binary masks
+face_mask1 = (1 - m1).astype(bool)
+face_mask2 = (1 - m2).astype(bool)
+bg_mask1   = m1.astype(bool)
+
+# --- A) Stabilize image2 by background ---
+img2_stab, stab_inliers, stab_err = stabilize_by_background(img1, img2, m1)
+mu_face, mu_bg = residual_motion(img1, img2_stab, face_mask1, m1)
+
+# Gate: require actual head motion after stabilization, and almost no BG motion
+head_moved = (mu_face > 1.5)   # tune
+bg_static  = (mu_bg   < 0.8)   # tune
+if not head_moved or not bg_static:
+    # Ask for retake OR mark spoof: here we mark 'retake' via conservative scoring
+    pass  # keep computing features but this should heavily penalize acceptance
+
+Then compute face geometry:
+
+# --- B) Face geometry features (planarity vs 3D) ---
+pts0, Z0 = facemesh_xyZ(img1)
+pts1, Z1 = facemesh_xyZ(img2_stab)
+corr_Z_resid, eH_face = face_planarity_features(pts0, Z0, pts1)
+disp_face = face_multiH_dispersion(img1, img2_stab, pts0, pts1)
+
+And fuse (simple rule to start):
+
+# Simple fusion (normalized by bg diagnostics)
+feat_live_votes = 0
+if head_moved and bg_static: feat_live_votes += 1
+if corr_Z_resid > 0.25 and eH_face > 1.2: feat_live_votes += 1
+if disp_face > 0.10: feat_live_votes += 1
+
+# Keep your old BG planar screen catch (strong spoof signal)
+planar_bg = (inlier_ratio_bg > params.homography_inlier_thresh)
+
+if planar_bg and (ss >= params.ssim_thresh) and (total_bg >= params.min_matches):
+    is_live = False  # screen/flat replay on static background
+else:
+    is_live = feat_live_votes >= 2  # need at least 2 independent live cues
+
+All thresholds above are starting points at ~320–640 px face width. Calibrate on your captures (see below).
+
+⸻
+
+4) Thresholds & calibration (quick recipe)
+	1.	Collect ~1–2k pairs (balanced bona fide vs attacks you care about: print, screen, co-rotation, dynamic BG replay, mask if possible).
+	2.	Normalize geometric pixel errors by inter-ocular distance.
+	3.	Grid-search thresholds to minimize BPCER@APCER=1%.
+	4.	If you can, fit a tiny LogisticRegression/LightGBM on:
+
+[mu_face, mu_bg, corr_Z_resid, eH_face, disp_face,
+ inlier_ratio_bg, ss_bg, flowstd_bg, match_ratio_bg, stab_inliers]
+
+Keep the retake gate separate (when stabilization fails or head_moved/bg_static violated).
+
+⸻
+
+5) Bonus ideas (low risk, good wins)
+	•	Iris foreshortening delta: fit ellipse to each iris (FaceMesh eye landmarks), compare major/minor ratio left vs right between frames → real yaw shows asymmetry changes.
+	•	FFT moiré score on cheek/forehead crops to snipe OLED/LCD replays (narrowband peaks at 2–4 px/cycle).
+	•	Client-side IMU gate: if Δgyro>5°, reject capture before it hits your API.
+
+⸻
+
+TL;DR
+	•	Your current system is BG-only → good for basic screens/prints, weak on co-rotation & dynamic replays.
+	•	Add BG stabilization + residual head motion, and face 3D planarity checks (3 short functions above).
+	•	Fuse with a tiny rule (≥2 live votes) or a 1-page LogReg.
+	•	Calibrate on your data. This combo is lightweight, robust, and a huge step toward bank-grade PAD without changing your API.
+
 If you want, I can add a tiny /calibrate route that ingests a labeled CSV of pairs and writes back tuned thresholds—just say the word and I’ll wire it in.
