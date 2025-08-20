@@ -989,5 +989,3 @@ TL;DR
 	•	Add BG stabilization + residual head motion, and face 3D planarity checks (3 short functions above).
 	•	Fuse with a tiny rule (≥2 live votes) or a 1-page LogReg.
 	•	Calibrate on your data. This combo is lightweight, robust, and a huge step toward bank-grade PAD without changing your API.
-
-If you want, I can add a tiny /calibrate route that ingests a labeled CSV of pairs and writes back tuned thresholds—just say the word and I’ll wire it in.
